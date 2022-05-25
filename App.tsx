@@ -1,11 +1,13 @@
 import * as React from 'react';
 import './style.css';
-import { useMachine } from '@xstate/react';
+import { useMachine, useInterpret } from '@xstate/react';
 
 import { quizMachine } from './src/Machines/Quiz';
 
 export default function App() {
   const [state, send] = useMachine(quizMachine);
+  const quizService = useInterpret(quizMachine);
+
   const { questions, currentQuestion } = state.context;
   return (
     <div>
@@ -18,16 +20,22 @@ export default function App() {
         <div>{question.question}</div>
       ))} */}
 
+      {state.matches('Start') && (
+        <div>
+          <h4>Quiz Time</h4>
+          <button onClick={() => send('Fetch')}>Fetch quiz</button>
+        </div>
+      )}
       {state.matches('Ready') && (
         <div>
-          <h1>Quiz Time</h1>
+          <h4>Nice! Found a quiz. Ready to start?</h4>
           <button onClick={() => send('Start')}>Start</button>
         </div>
       )}
 
-      {state.matches('Preamble') && (
+      {state.matches('Ready.Question') && (
         <div>
-          <h1>Preamble</h1>
+          <h4>Preamble</h4>
           <p>{questions[currentQuestion].question}</p>
           <button onClick={() => send('Next')}>Next</button>
         </div>
@@ -35,7 +43,7 @@ export default function App() {
 
       <div>
         {/** You can send events to the running service */}
-        <button onClick={() => send('Fetch')}>Start</button>
+
         {/* <button onClick={() => send('REJECT')}>Reject</button> */}
       </div>
     </div>

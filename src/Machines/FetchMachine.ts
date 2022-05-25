@@ -26,7 +26,7 @@ export type SimpleDataFetchMachineEvent =
       type: 'CANCEL';
     };
 
-const simpleDataFetchMachine = createMachine<
+const fetchMachine = createMachine<
   SimpleDataFetchMachineContext,
   SimpleDataFetchMachineEvent
 >(
@@ -95,4 +95,4 @@ const simpleDataFetchMachine = createMachine<
   }
 );
 
-export default simpleDataFetchMachine;
+export default fetchMachine;

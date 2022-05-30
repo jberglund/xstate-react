@@ -5,8 +5,19 @@ import { useMachine, useInterpret } from '@xstate/react';
 import { quizMachine } from './src/Machines/Quiz';
 
 export default function App() {
-  const [state, send] = useMachine(quizMachine);
+  const [state, send, service] = useMachine(quizMachine);
   const quizService = useInterpret(quizMachine);
+
+  React.useEffect(() => {
+    const subscription = service.subscribe((state) => {
+      // simple state logging
+      console.log(state.value);
+      console.log(state.children);
+      console.log(state.nextEvents.map((p) => p));
+    });
+
+    return subscription.unsubscribe;
+  }, [service]);
 
   const { questions, currentQuestion } = state.context;
   return (

@@ -33,7 +33,7 @@ const fetchMachine = createMachine<
   {
     id: 'simpleDataFetch',
     initial: 'idle',
-    context: {},
+    context: { data: undefined },
     states: {
       idle: {
         on: {
@@ -58,7 +58,7 @@ const fetchMachine = createMachine<
             target: 'idle',
           },
           RECEIVE_DATA: {
-            target: 'idle',
+            target: 'success',
             actions: 'assignDataToContext',
           },
         },
@@ -70,11 +70,19 @@ const fetchMachine = createMachine<
           },
         },
       },
+      success: {
+        type: 'final',
+        data: {
+          data: (context) => context.data,
+        },
+      },
     },
   },
   {
     services: {
-      fetchData: () => () => {},
+      fetchData: () => () => {
+        data: 'hey';
+      },
     },
     actions: {
       assignDataToContext: assign((context, event) => {

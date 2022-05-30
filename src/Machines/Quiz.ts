@@ -1,33 +1,107 @@
 import { assign, createMachine } from 'xstate';
+import { quiz } from '../../mocks/questions';
 import fetchMachine from './FetchMachine';
 
-/* const getQuiz = new Promise<Question[]>((resolve) => {
-  setTimeout(() => {
-    resolve(quiz.results);
-  }, 300);
-}); */
+const delay = (t) => new Promise((resolve) => setTimeout(resolve, t));
 
-/* const testLightMachine = lightMachine.withContext({
-  elapsed: 1000,
-  direction: 'north'
-}); */
+const omgquiz = delay(500).then(() => quiz);
 
-const fetchQuizMachine = fetchMachine.withConfig({
-  services: {
-    fetchData: () => fetch('/quiz')
-    .then(blob => blob.json())
-    .then(data => {
-      if (data.message) {
-        return
-      }
-      return data
-    })
-    .catch(console.log)
+export interface SimpleDataFetchMachineContext {
+  data?: Data;
+  errorMessage?: string;
+  endpoint: string;
+}
+
+interface Variables {
+  id: string;
+}
+
+interface Data {
+  name: string;
+}
+
+export type SimpleDataFetchMachineEvent =
+  | {
+      type: 'FETCH';
+      variables: Variables;
+    }
+  | {
+      type: 'RECEIVE_DATA';
+      data: Data;
+    }
+  | {
+      type: 'CANCEL';
+    };
+
+const secretMachine = createMachine<
+  SimpleDataFetchMachineContext,
+  SimpleDataFetchMachineEvent
+>(
+  {
+    id: 'secret',
+    initial: 'fetching',
+    context: {
+      endpoint: 'omg',
+      data: undefined,
+    },
+    states: {
+      fetching: {
+        on: {
+          /* CANCEL: {
+            target: 'idle',
+          }, */
+          RECEIVE_DATA: {
+            target: 'success',
+            actions: 'assignDataToContext',
+          },
+        },
+        invoke: {
+          src: 'fetchData',
+          id: 'fetchInvokation',
+          onDone: {
+            target: 'success',
+            actions: 'assignDataToContext',
+          },
+          onError: {
+            target: 'errored',
+            actions: 'assignErrorToContext',
+          },
+        },
+      },
+      errored: {
+        type: 'final',
+      },
+      success: {
+        type: 'final',
+        data: {
+          endpoint: (context, event) => context.endpoint,
+        },
+      },
+    },
+  },
+  {
+    services: {
+      fetchData: (context) => omgquiz,
+    },
+    actions: {
+      assignDataToContext: assign((context, event) => {
+        //if (event.type !== 'RECEIVE_DATA') return {};
+        console.log('lol', event.type);
+        return {
+          data: event.data,
+        };
+      }),
+      clearErrorMessage: assign({
+        errorMessage: undefined,
+      }),
+      assignErrorToContext: assign((context, event: any) => {
+        return {
+          errorMessage: event.data?.message || 'An unknown error occurred',
+        };
+      }),
+    },
   }
-});
-const allQuestionsAnswered = (context, event) => {
-  return context.questions.length === context.answers.length;
-};
+);
 
 export const quizMachine = createMachine(
   {
@@ -39,15 +113,32 @@ export const quizMachine = createMachine(
       currentQuestion: 0,
     },
     initial: 'Start',
-
     states: {
       Start: {
         type: 'atomic',
         on: {
-          Fetch: { target: 'Ready' },
+          Fetch: { target: 'Fetch' },
         },
       },
-
+      Fetch: {
+        invoke: {
+          src: secretMachine,
+          data: {
+            endpoint: 'https://opentdb.com/api.php?amount=10&category=9',
+          },
+          onDone: {
+            target: 'Ready',
+            actions: assign({
+              questions: (context, event) => {
+                // event is:
+                // { type: 'done.invoke.secret', data: { secret: '42' } }
+                console.log(event);
+                return event.data.endpoint;
+              },
+            }),
+          },
+        },
+      },
       Ready: {
         initial: 'Question',
         states: {
